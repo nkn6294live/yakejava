@@ -21,35 +21,48 @@ import home.tut.yake.Wrapper.jellyfish;
 
 public class Yake {
 
-	public static Set<String> loadFromResource(String resource, Charset charset) {
-		Set<String> result = new HashSet<>();
-		try(InputStream inputStream = Thread.currentThread().getContextClassLoader().getResourceAsStream(resource)) {
-			try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, charset))) {
-				String line = null;
-				while ((line = reader.readLine()) != null) {
-					if (line.isEmpty()) {
-						continue;
-					}
-					result.add(line);
-				}
-			} catch (Exception ex) {
-				throw ex;
-			}
-		} catch (Exception ex) {
-			ex.printStackTrace();
+	public static class KeywordExtractorOutput {
+		
+		public static KeywordExtractorOutput from(String key, double value) {
+			return new KeywordExtractorOutput(key, value);
 		}
-		return result;
+		
+		public String key() {
+			return this.key;
+		}
+		
+		public double value() {
+			return this.value;
+		}
+		
+		@Override
+		public String toString() {
+			return String.format("(%s, %f)", this.key, this.value);
+		}
+		
+		private String key;
+		private double value;
+		
+		private KeywordExtractorOutput(String key, double value) {
+			this.key = key;
+			this.value = value;
+		}
+	}
+	
+	public enum DedupAlg {
+		jaro,//"jaro_winkler","jaro"
+		seqm,//"sequencematcher","seqm"
+		levs,//"levenshtein", levs"
 	}
 	
 	public static class KeywordExtractor {
 
-		public KeywordExtractor(String lan, int n, double dedupLim, String dedupFunc, int windowsSize, int top, String[] features) {//def __init__(self, lan="en", n=3, dedupLim=0.9, dedupFunc='seqm', windowsSize=1, top=20, features=None):
+		public KeywordExtractor(String lan, int n, double dedupLim, DedupAlg dedupFunc, int windowsSize, int top, String[] features) {//def __init__(self, lan="en", n=3, dedupLim=0.9, dedupFunc='seqm', windowsSize=1, top=20, features=None):
 	        this.lan = lan;
 	        String resource = String.format("StopwordsList/stopwords_%s.txt", this.lan.substring(0, 2).toLowerCase());
 	        try {
 	        	this.stopword_set = loadFromResource(resource, StandardCharsets.UTF_8);
 	        } catch (Exception ex) {
-//	        	resource =  "StopwordsList/stopwords.txt";// default
 	        	this.stopword_set = loadFromResource(resource, StandardCharsets.ISO_8859_1);
 	        }
 	        this.n = n;
@@ -57,9 +70,9 @@ public class Yake {
 	        this.dedupLim = dedupLim;
 	        this.features = features;
 	        this.windowsSize = windowsSize;
-	        if("jaro_winkler".contentEquals(dedupFunc) || "jaro".contentEquals(dedupFunc)) {
+	        if(dedupFunc == DedupAlg.jaro) {
 	            this.dedu_function = this::jaro;
-	        } else if("sequencematcher".contentEquals(dedupFunc.toLowerCase()) || "seqm".contentEquals(dedupFunc.toLowerCase())) {
+	        } else if(dedupFunc == DedupAlg.seqm) {
 	            this.dedu_function = this::seqm;
 	        } else {
 	            this.dedu_function = this::levs;
@@ -67,24 +80,24 @@ public class Yake {
 		}
 
 		public KeywordExtractor() {
-			this("en", 3, 0.9, "seqm", 1, 20, null);
+			this("en", 3, 0.9, DedupAlg.seqm, 1, 20, null);
 		}
 
-		public double jaro(CharSequence cand1, CharSequence cand2) {// def jaro(self, cand1, cand2):
+		public double jaro(CharSequence cand1, CharSequence cand2) {
 			return jellyfish.jaro_winkler(cand1, cand2);
 		}
 
-		public double levs(CharSequence cand1, CharSequence cand2) {// def levs(self, cand1, cand2):
+		public double levs(CharSequence cand1, CharSequence cand2) {
 			return 1.0 - jellyfish.levenshtein_distance(cand1, cand2) / max(cand1.length(), cand2.length());
 		}
 
-		public double seqm(CharSequence cand1, CharSequence cand2) { // seqm(self, cand1, cand2):
+		public double seqm(CharSequence cand1, CharSequence cand2) {
 			return Levenshtein.ratio(cand1, cand2);
 		}
 
-		public List<Object> extract_keywords(String text) {// def extract_keywords(self, text):
+		public List<KeywordExtractorOutput> extract_keywords(String text) {
 			text = text.replace("\n\t", " ");
-			DataCore dc = new DataCore(text, this.stopword_set, this.windowsSize, this.n, null, null);//
+			DataCore dc = new DataCore(text, this.stopword_set, this.windowsSize, this.n, null, null);
 			dc.build_single_terms_features(this.features);
 			dc.build_mult_terms_features(this.features);
 			List<Tuple<Object>> resultSet = new ArrayList<>();// []
@@ -95,7 +108,9 @@ public class Yake {
 					.collect(Collectors.toList());
 			if (this.dedupLim >= 1.0) {
 				// return ([ (cand.H, cand.unique_kw) for cand in todedup])[:self.top]
-				return todedup.stream().map(cand -> Tuple.from(cand.H, cand.unique_kw))
+				return todedup.stream()
+//						.map(cand -> Tuple.from(cand.unique_kw, cand.H))
+						.map(cand -> KeywordExtractorOutput.from(cand.unique_kw, cand.H))
 						.limit(this.top).collect(Collectors.toList());
 			}
 			for (ComposedWord cand : todedup) {
@@ -118,7 +133,8 @@ public class Yake {
 			}
 			// return [ (cand.unique_kw,h) for (h,cand) in resultSet]
 			return resultSet.stream()
-					.map(t -> Tuple.from(((ComposedWord)t.value(1)).unique_kw, t.value(0)))
+//					.map(t -> Tuple.from(((ComposedWord)t.value(1)).unique_kw, t.value(0)))
+					.map(t -> KeywordExtractorOutput.from(((ComposedWord)t.value(1)).unique_kw, (double)t.value(0)))
 					.collect(Collectors.toList());
 		}
 		
@@ -134,5 +150,25 @@ public class Yake {
 		private static interface DedupFunc {
 			public double apply(CharSequence cand1, CharSequence cand2);
 		}
+	}
+	
+	private static Set<String> loadFromResource(String resource, Charset charset) {
+		Set<String> result = new HashSet<>();
+		try(InputStream inputStream = Thread.currentThread().getContextClassLoader().getResourceAsStream(resource)) {
+			try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, charset))) {
+				String line = null;
+				while ((line = reader.readLine()) != null) {
+					if (line.isEmpty()) {
+						continue;
+					}
+					result.add(line.toLowerCase());
+				}
+			} catch (Exception ex) {
+				throw ex;
+			}
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+		return result;
 	}
 }

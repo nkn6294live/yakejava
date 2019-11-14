@@ -336,11 +336,6 @@ public class Wrapper {
 			return 1 - distance / str_length;
 		}
 	}
-
-	// TODO NEED UPDATE
-	
-	
-	// TODO NEED IMPLEMENT
 	
 	public static class Tuple<T> implements Iterable<T> {
 		
@@ -375,6 +370,18 @@ public class Wrapper {
 		@Override
 		public Iterator<T> iterator() {
 			return Arrays.stream(this.values).iterator();
+		}
+		
+		@Override
+		public String toString() {
+			StringBuilder builder = new StringBuilder();
+			builder.append("(");
+			String content = String.join(", ", Arrays.stream(this.values)
+					.map(value -> value == null ? "null" : value.toString())
+					.collect(Collectors.toList()));
+			builder.append(content);
+			builder.append(")");
+			return builder.toString();
 		}
 		
 		private T[] values;
@@ -509,6 +516,11 @@ public class Wrapper {
 		public Tuple<Object> tuple() {
 			return Tuple.from(u, v, d);
 		}
+		
+		@Override
+		public String toString() {
+			return String.format("(%s, %s)", u, v);
+		}
 	}
 	
 	public static class nx_node {
@@ -548,6 +560,11 @@ public class Wrapper {
 			return this.d.keySet();
 		}
 
+		@Override
+		public String toString() {
+			return this.id + "";
+		}
+		
 		private int id;
 		private Map<String, Object> d;
 	}
@@ -558,30 +575,11 @@ public class Wrapper {
 					.filter(item -> item.u.id == node_id)
 					.collect(Collectors.toList());
 		}
-		public List<nx_edge> out_edges(nx_node node) {
-			return this.edges.stream()
-					.filter(item -> item.u.equals(node))
-					.collect(Collectors.toList());
-		}
 		
 		public List<nx_edge> in_edges(int node_id) {
 			return this.edges.stream()
 					.filter(item -> item.v.id == node_id)
 					.collect(Collectors.toList());
-		}
-		public List<nx_edge> in_edges(nx_node node) {
-			return this.edges.stream()
-					.filter(item -> item.v.equals(node))
-					.collect(Collectors.toList());
-		}
-		
-		public nx_edge add_edge(nx_node u, nx_node v, Map<String, Object> d) {
-			nx_edge edge = this.get(u, v);
-			if (edge == null) {
-				edge = new nx_edge(this.add_node(u), this.add_node(v), d);
-				this.edges.add(edge);
-			}
-			return edge;
 		}
 		
 		public nx_edge add_edge(int u, int v, Map<String, Object> d) {
@@ -591,21 +589,6 @@ public class Wrapper {
 				this.edges.add(edge);
 			}
 			return edge;
-		}
-		
-		public nx_node add_node(nx_node u) {
-			nx_node old_node = this.nodes.put(u.id, u);
-			if (old_node != null) {
-				for (nx_edge edge : this.edges) {
-					if (edge.u.id == u.id) {
-						edge.u = u;
-					}
-					if (edge.v.id == u.id) {
-						edge.v = u;
-					} 
-				}
-			}
-			return u;
 		}
 		
 		public nx_node add_node(int node_id) {
@@ -618,12 +601,7 @@ public class Wrapper {
 					.filter(item-> item.v.id == v)
 					.findAny().orElse(null);
 		}
-		public nx_edge get(nx_node u, nx_node v) {
-			return this.edges.stream()
-					.filter(item -> item.u.equals(u))
-					.filter(item-> item.v.equals(v))
-					.findAny().orElse(null);
-		}
+		
 		public boolean check_contain(int u, int v) {
 			return false;
 		}
@@ -643,6 +621,49 @@ public class Wrapper {
 		
 		public Object d(String name) {
 			return this.d.get(name);
+		}
+		
+		protected List<nx_edge> out_edges(nx_node node) {
+			return this.edges.stream()
+					.filter(item -> item.u.equals(node))
+					.collect(Collectors.toList());
+		}
+		
+		protected List<nx_edge> in_edges(nx_node node) {
+			return this.edges.stream()
+					.filter(item -> item.v.equals(node))
+					.collect(Collectors.toList());
+		}
+		
+		protected nx_edge get(nx_node u, nx_node v) {
+			return this.edges.stream()
+					.filter(item -> item.u.equals(u))
+					.filter(item-> item.v.equals(v))
+					.findAny().orElse(null);
+		}
+		
+		protected nx_edge add_edge(nx_node u, nx_node v, Map<String, Object> d) {
+			nx_edge edge = this.get(u, v);
+			if (edge == null) {
+				edge = new nx_edge(this.add_node(u), this.add_node(v), d);
+				this.edges.add(edge);
+			}
+			return edge;
+		}
+		
+		protected nx_node add_node(nx_node u) {
+			nx_node old_node = this.nodes.put(u.id, u);
+			if (old_node != null) {
+				for (nx_edge edge : this.edges) {
+					if (edge.u.id == u.id) {
+						edge.u = u;
+					}
+					if (edge.v.id == u.id) {
+						edge.v = u;
+					} 
+				}
+			}
+			return u;
 		}
 		
 		private List<nx_edge> edges;

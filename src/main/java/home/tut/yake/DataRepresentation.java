@@ -33,9 +33,8 @@ public class DataRepresentation {
 		public void updateH(String[] features, boolean isVirtual) {
 		}
 		
-		public void updateH(double maxTF, double avgTF, double stdTF, double number_of_sentences, String[] features) {
+		public void updateH(double maxTF, double avgTF, double stdTF, int number_of_sentences, String[] features) {
 		}
-		
 		public void addOccur(String tag, int sent_id, int pos_sent, int pos_text) {
 		}
 		
@@ -150,6 +149,7 @@ public class DataRepresentation {
 	    	return this.WDL() / wil; 
 	    }
 	    
+	    @Override
 	    public void updateH(double maxTF, double avgTF, double stdTF, int number_of_sentences, String[] features) {
 	    	boolean isNone 		= features == null || features.length == 0;
 	    	boolean isWRel 		= false;
@@ -296,22 +296,23 @@ public class DataRepresentation {
 	                 this.tags = new HashSet<>();
 	                 return;
 	            }
-	            StringBuilder tagBuilder = new StringBuilder();
-	            StringBuilder unique_kwBuilder = new StringBuilder().append(' ');
+	            List<String> tagBuilder = new ArrayList<>();
+	            List<String> unique_kwBuilder = new ArrayList<>();
 	            this.terms = new ArrayList<>();
 	            for (Tuple<Object> term : terms) {
 	            	String tag = (String)term.value(0);
 	            	String word = (String)term.value(1);
 	            	Term term_obj = (Term)term.value(2);
 	            	
-	            	tagBuilder.append(tag);
-	            	unique_kwBuilder.append(word.toLowerCase());
+	            	tagBuilder.add(tag);
+	            	unique_kwBuilder.add(word.toLowerCase());
 	            	if (term_obj != null) {	            		
 	            		this.terms.add(term_obj);//this.terms = [ w[2] for w in terms if w[2] != None ]
 	            	}
 	            }
-	            this.tags.add(tagBuilder.toString());//this.tags = set([''.join([ w[0] for w in terms ])])
-	            this.unique_kw = unique_kwBuilder.toString();//this.unique_kw = ' '.join( [ w[1].lower() for w in terms ] )
+	            this.tags = new HashSet<>();
+	            this.tags.add(String.join("",tagBuilder));//this.tags = set([''.join([ w[0] for w in terms ])])
+	            this.unique_kw = String.join(" ", unique_kwBuilder);//this.unique_kw = ' '.join( [ w[1].lower() for w in terms ] )
 	            this.size = terms.size();
 	            this.tf = 0.0;
 	            this.integrity = 1.0;
@@ -586,14 +587,15 @@ public class DataRepresentation {
 		
 //		Build the datacore features
 		public void _build(String text, int windowsSize, int n) {//def _build(self, text, windowsSize, n):
-			// TODO update
 			text = this.pre_filter(text).toString();
 //	        this.sentences_str = [ [w for w in split_contractions(web_tokenizer(s)) if not (w.startswith("'") and len(w) > 1) and len(w) > 0] for s in list(split_multi(text)) if len(s.strip()) > 0]
 			this.sentences_str = split_multi(text).stream()
 				.filter(s -> s.trim().length() > 0)//strip
-				.flatMap(s -> split_contractions(web_tokenizer(s)).stream())
-				.filter(w -> w.length() > 0)
-				.filter(w -> !(w.length() > 1 && w.startsWith("'")))
+				.map(s -> split_contractions(web_tokenizer(s)).stream()
+						.filter(w -> w.length() > 0)
+						.filter(w -> !(w.length() > 1 && w.startsWith("'")))
+						.collect(Collectors.toList())
+						)
 				.collect(Collectors.toList());
 			
 	        this.number_of_sentences = this.sentences_str.size();
@@ -601,12 +603,11 @@ public class DataRepresentation {
 	        List<Tuple<Object>> block_of_word_obj = new ArrayList<>();
 	        List<Object> sentence_obj_aux = new ArrayList<>();
 	        for (int sentence_id = 0; sentence_id < this.sentences_str.size(); sentence_id++) {
-	        	String sentence = this.sentences_str.get(sentence_id);
+	        	List<String> sentence = this.sentences_str.get(sentence_id);
 	            sentence_obj_aux = new ArrayList<>();
 	            block_of_word_obj = new ArrayList<>();
-	            String[] words = sentence.split(" ");//enumerate(sentence)
-	            for (int pos_sent = 0; pos_sent < words.length; pos_sent++) {
-	            	String word = words[pos_sent];
+	            for (int pos_sent = 0; pos_sent < sentence.size(); pos_sent++) {//for (pos_sent, word) in enumerate(sentence):
+	            	String word = sentence.get(pos_sent);
 	            	int cExclude = 0;//len([c for c in word if c in self.exclude])
 	            	for (char c : word.toCharArray()) {
 	            		for (char e : this.exclude) {
@@ -622,7 +623,7 @@ public class DataRepresentation {
 	                    }
 	                } else {
 	                    String tag = this.getTag(word, pos_sent);
-	                    Term term_obj = this.getTerm(word, true);
+	                    Term term_obj = this.getTerm(word);
 	                    term_obj.addOccur(tag, sentence_id, pos_sent, pos_text);
 	                    pos_text += 1;
 //	                    #Create co-occurrence matrix
@@ -643,24 +644,28 @@ public class DataRepresentation {
 	                    ComposedWord cand = new ComposedWord(candidate);
 	                    this.addOrUpdateComposedWord(cand);
 	                    // TODO need update
-	                    int[] word_windows = IntStream.range(max(0, block_of_word_obj.size() - (n - 1)), block_of_word_obj.size()).toArray();// list(range( max(0, len(block_of_word_obj)-(n-1)), len(block_of_word_obj) ))[::-1]
-	                    for (int w : word_windows) {//TODO ?? Reverse
+//	                    int[] word_windows = IntStream.range(max(0, block_of_word_obj.size() - (n - 1)), block_of_word_obj.size()).toArray();// list(range( max(0, len(block_of_word_obj)-(n-1)), len(block_of_word_obj) ))[::-1]
+	                    for (int w =  block_of_word_obj.size() - 1; w >= max(0, block_of_word_obj.size() - (n - 1)); w--) {	                    	
 	                        candidate.add(block_of_word_obj.get(w));
 	                        int key = candidate.size();
 	                        double old = this.freq_ns.get(key);
 	                        this.freq_ns.put(key, old + 1.0);//this.freq_ns[candidate.size()] += 1.0
-	                        cand = new ComposedWord(candidate);// composed_word(candidate[::-1])
+	                        List<Tuple<Object>> invertCandidate = new ArrayList<>();
+	                        for (int i = candidate.size() - 1; i >= 0; i--) {
+	                        	invertCandidate.add(candidate.get(i));
+	                        }
+	                        cand = new ComposedWord(invertCandidate);//composed_word(candidate[::-1])
 	                        this.addOrUpdateComposedWord(cand);
 	                    }
 //	                    # Add term to the block of words' buffer
 	                    block_of_word_obj.add(Tuple.from(tag, word, term_obj));
 	                }
-		            if (block_of_word_obj.size() > 0) {
-		                sentence_obj_aux.add(block_of_word_obj);
-		            }
-		            if (sentence_obj_aux.size() > 0) {	            	
-		            	this.sentences_obj.add(sentence_obj_aux);
-		            }
+	            }
+	            if (block_of_word_obj.size() > 0) {
+	            	sentence_obj_aux.add(block_of_word_obj);
+	            }
+	            if (sentence_obj_aux.size() > 0) {	            	
+	            	this.sentences_obj.add(sentence_obj_aux);
 	            }
 	        }
 	        if (block_of_word_obj.size() > 0) {	        	
@@ -678,8 +683,8 @@ public class DataRepresentation {
 	    	List<Double> termValidTFs = new ArrayList<>();
 //	        List<Term> validTerms = 
     		this.terms.values().stream()
-	        		.peek(term -> termTFs.add(term.tf))
-	        		.filter(term -> !term.stopword)
+		    		.peek(term -> termTFs.add(term.tf))
+		    		.filter(term -> !term.stopword)
 	        		.peek(term -> termValidTFs.add(term.tf))
 	        		.collect(Collectors.toList());// [ term for term in self.terms.values() if not term.stopword ]
 	        np validTFs = np.array(termValidTFs);//(np.array([ x.tf for x in validTerms ]))
@@ -691,12 +696,19 @@ public class DataRepresentation {
 	        	.forEach(term -> term.updateH(maxTF, avgTF, stdTF, this.number_of_sentences, features));
 		}
 		
+	    public void build_single_terms_features() {
+	    	this.build_single_terms_features(null);
+	    }
+	    
 	    public void build_mult_terms_features(String[] features) {//def build_mult_terms_features(self, features=None):
-	    	// TODO need check
 //	        list(map(lambda x: x.updateH(features=features), [cand for cand in self.candidates.values() if cand.isValid()]))
 	        this.candidates.values().stream()
 	        	.filter(ComposedWord::isValid)
-	        	.forEach(cand -> cand.updateH(features, false));
+	        	.forEach(cand -> cand.updateH(features));
+	    }
+	    
+	    public void build_mult_terms_features() {
+	    	this.build_mult_terms_features(null);
 	    }
 		
 	    public String pre_filter(String text) {
@@ -808,7 +820,7 @@ public class DataRepresentation {
 	    protected Map<String, Term> terms;
 	    protected Map<String, ComposedWord> candidates;//???
 	    protected List<Object> sentences_obj;
-        protected List<String> sentences_str;
+        protected List<List<String>> sentences_str;
         protected nx G;
         protected char[] exclude;
         protected String[] tagsToDiscard;
