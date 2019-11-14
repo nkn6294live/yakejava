@@ -340,10 +340,6 @@ public class Wrapper {
 	// TODO NEED UPDATE
 	
 	
-	
-	
-	
-	
 	// TODO NEED IMPLEMENT
 	
 	public static class Tuple<T> implements Iterable<T> {
@@ -556,7 +552,7 @@ public class Wrapper {
 		private Map<String, Object> d;
 	}
 	
-	public static class nx<T> {
+	public static class nx {
 		public List<nx_edge> out_edges(int node_id) {
 			return this.edges.stream()
 					.filter(item -> item.u.id == node_id)
@@ -641,8 +637,8 @@ public class Wrapper {
 			return this.get(u, v) != null;
 		}
 		
-		public static nx<Object> DiGraph() {
-			return new nx<Object>();
+		public static nx DiGraph() {
+			return new nx();
 		}
 		
 		public Object d(String name) {

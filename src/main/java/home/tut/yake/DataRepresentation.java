@@ -7,7 +7,6 @@ import static home.tut.yake.Wrapper.segtok.split_contractions;
 import static home.tut.yake.Wrapper.segtok.split_multi;
 import static home.tut.yake.Wrapper.segtok.web_tokenizer;
 
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -27,20 +26,9 @@ import home.tut.yake.Wrapper.nx_edge;
 
 public class DataRepresentation {
 	public static final String STOPWORD_WEIGHT = "bi";
-	public static final char[] PUNCTUATION = "!\"#$%&\\'()*+,-./:;<=>?@[\\\\]^_`{|}~".toCharArray();
+	public static final char[] PUNCTUATION = "!\"#$%&\\'()*+,-./:;<=>?@[\\]^_`{|}~".toCharArray();
 	
 	public static class Term {
-		
-		public static Term from(Term term_base) {
-			Term t = new Term();
-			t.term_base = term_base;
-			return t;
-		}
-		
-		public Term feature_name(String feature_name) {
-			this.feature_name = feature_name;
-			return this;
-		}
 		
 		public void updateH(String[] features, boolean isVirtual) {
 		}
@@ -50,43 +38,56 @@ public class DataRepresentation {
 		
 		public void addOccur(String tag, int sent_id, int pos_sent, int pos_text) {
 		}
+		
 		protected boolean stopword;
-		protected String feature_name;
-		protected Object term;
-		protected Term term_base;
 		protected int t;
 		protected double tf;
-		protected nx<?> G;
+		protected nx G;
 		protected int id;
 		protected double H;
 		
-		private Term() {
+		protected Term() {
 			this.updateStopword();
 		}
 		
-		private void updateStopword() {
+		protected Double getattr(String feature_name) {
+			if ("tf".contentEquals(feature_name)) {
+				return this.tf;
+			}
+			if ("t".contentEquals(feature_name)) {
+				return (double)this.t;
+			}
+			if ("H".contentEquals(feature_name)) {
+				return this.H;
+			}
+			if ("id".contentEquals(feature_name)) {
+				return (double)this.id;
+			}
+//			Object o = null;
+//			Field field = null;
+//			try {
+//				field = this.getClass().getField(feature_name);
+//				o = field.get(this);
+//			} catch (Exception e) {
+//				try {
+//					field.setAccessible(true);;
+//					o = field.get(this);
+//					field.setAccessible(false);
+//				} catch (Exception ex) {}
+//			}
+//			if (o instanceof Number) {						
+//				return ((Number)o).doubleValue();
+//			}
+			return null;
+		}
+		
+		protected void updateStopword() {
 			// TODO check stopword
 		}
 	}
-	
-	public static class Tag {
 		
-		public static Tag from(Object value) {
-			return new Tag(value);
-		}
-		
-		public boolean contains(String value) {
-			return this.tag.contains(value);
-		}
-		
-		public Tag(Object tag) {
-			this.tag = tag.toString();
-		}
-		private String tag;
-	}
-	
 	public static class SingleWord extends Term {
-		public SingleWord(String unique, int idx, nx<Object> graph) {
+		public SingleWord(String unique, int idx, nx graph) {
 			super();
 			this.unique_term = unique;
 	        this.id = idx;
@@ -214,8 +215,6 @@ public class DataRepresentation {
 	    }
 	    
 	    protected String unique_term;
-	    protected int id;
-	    protected double tf;
 	    protected double WFreq;
 	    protected double WCase;
 	    protected double tf_a;
@@ -225,11 +224,68 @@ public class DataRepresentation {
 	    protected double PR;
 	    protected double WPos;
 	    protected double WSpread;
-	    protected double H;
 	    protected double pagerank;
 	    protected boolean stopword;
-	    protected nx<Object> G;
 	    protected Map<Integer, List<Tuple<?>>> occurs;
+	    
+		@Override
+		protected Double getattr(String feature_name) {
+			Double value = super.getattr(feature_name);
+			if (value != null) {
+				return value;
+			}
+			
+			if ("WFreq".contentEquals(feature_name)) {
+				return this.WFreq;
+			}
+			if ("WCase".contentEquals(feature_name)) {
+				return this.WCase;
+			}
+			if ("tf_a".contentEquals(feature_name)) {
+				return this.tf_a;
+			}
+			if ("tf_n".contentEquals(feature_name)) {
+				return this.tf_n;
+			}
+			if ("WRel".contentEquals(feature_name)) {
+				return this.WRel;
+			}
+			if ("PL".contentEquals(feature_name)) {
+				return this.PL;
+			}
+			if ("PR".contentEquals(feature_name)) {
+				return this.PR;
+			}
+			if ("WPos".contentEquals(feature_name)) {
+				return this.WPos;
+			}
+			if ("WSpread".contentEquals(feature_name)) {
+				return this.WSpread;
+			}
+			if ("pagerank".contentEquals(feature_name)) {
+				return this.pagerank;
+			}
+			// properties
+			if ("WDR".contentEquals(feature_name)) {
+				return (double)this.WDR();
+			}
+			if ("WIR".contentEquals(feature_name)) {
+				return this.WIR();
+			}
+			if ("PWR".contentEquals(feature_name)) {
+				return this.PWR();
+			}
+			if ("WDL".contentEquals(feature_name)) {
+				return (double)this.WDL();
+			}
+			if ("WIL".contentEquals(feature_name)) {
+				return this.WIL();
+			}
+			if ("PWL".contentEquals(feature_name)) {
+				return this.PWL();
+			}
+			return null;
+		}
 	}
 	
 	public static class ComposedWord extends Term {
@@ -251,62 +307,40 @@ public class DataRepresentation {
 	            	tagBuilder.append(tag);
 	            	unique_kwBuilder.append(word.toLowerCase());
 	            	if (term_obj != null) {	            		
-	            		this.terms.add(term_obj);
+	            		this.terms.add(term_obj);//this.terms = [ w[2] for w in terms if w[2] != None ]
 	            	}
 	            }
-//	            this.tags = set([''.join([ w[0] for w in terms ])])
-	            this.tags.add(Tag.from(tagBuilder.toString()));
-//	            this.unique_kw = ' '.join( [ w[1].lower() for w in terms ] )
-	            this.unique_kw = unique_kwBuilder.toString();
+	            this.tags.add(tagBuilder.toString());//this.tags = set([''.join([ w[0] for w in terms ])])
+	            this.unique_kw = unique_kwBuilder.toString();//this.unique_kw = ' '.join( [ w[1].lower() for w in terms ] )
 	            this.size = terms.size();
-//	            this.terms = [ w[2] for w in terms if w[2] != None ]
 	            this.tf = 0.0;
 	            this.integrity = 1.0;
 	            this.H = 1.0;
 	            this.start_or_end_stopwords = this.terms.get(0).stopword 
-	            		|| this.terms.get(this.terms.size() - 1).stopword;
+	            		|| this.terms.get(this.terms.size() - 1).stopword;//self.start_or_end_stopwords = self.terms[0].stopword or self.terms[-1].stopword
 	    }
 	    
 	    public void uptadeCand(ComposedWord cand) {//(cand) : 
-//	    	 for tag in cand.tags:
-//		            this.tags.add( tag )
-	    	for (Tag tag : cand.tags) {//TODO need update
+	    	for (String tag : cand.tags) {// for tag in cand.tags: this.tags.add( tag )
 	    		this.tags.add(tag);
 	    	}
 	    }
 	       
 	    public boolean isValid() {
 	    	boolean isValid = false;
-	        for (Tag tag : this.tags) {
-//	        	isValid = isValid or ( "u" not in tag and "d" not in tag )
-	            isValid = isValid || (!tag.contains("u") && !tag.contains("d"));
+	        for (String tag : this.tags) {
+	            isValid = isValid || (!tag.contains("u") && !tag.contains("d"));//isValid or ( "u" not in tag and "d" not in tag )
 	        }
 	        return isValid && !this.start_or_end_stopwords;
 	    }
 	    
-	    public Tuple<Double> get_composed_feature(String feature_name, Boolean discart_stopword) {//=True):
-	    	List<Double> list_of_features = new ArrayList<>();
+	    public Tuple<Double> get_composed_feature(String feature_name, boolean discart_stopword) {//=True):
 //	    	list_of_features = [ getattr(term, feature_name) for term in self.terms if ( discart_stopword and not term.stopword ) or not discart_stopword ]
-	    	for (Term term : this.terms) {
-	    		if ((discart_stopword && !term.stopword) || !discart_stopword) {
-	    			Object o = null;
-	    			Field field = null;
-					try {
-						field = term.getClass().getField(feature_name);
-						o = field.get(term);
-					} catch (Exception e) {
-						try {
-							field.setAccessible(true);;
-							o = field.get(term);
-							field.setAccessible(false);
-						} catch (Exception ex) {}
-					}
-					if (o instanceof Number) {						
-						list_of_features.add(((Number)o).doubleValue());
-					}
-	    		}
-	    	}
-	    	// TODO update composed feautre.
+	    	List<Double> list_of_features = this.terms.stream()
+	    		.filter(term -> (discart_stopword && !term.stopword) || !discart_stopword)
+	    		.map(term -> term.getattr(feature_name))
+	    		.filter(item -> item != null)
+	    		.collect(Collectors.toList());
 	        double sum_f  = sum(list_of_features);
 	        double prod_f = np.prod(list_of_features);
 	        return Tuple.from( sum_f, prod_f, prod_f /(sum_f + 1));
@@ -316,7 +350,7 @@ public class DataRepresentation {
 	    	return this.get_composed_feature(feature_name, true);
 	    }
 	    
-	    public Tuple<?> build_features(String doc_id, String[] keys, boolean rel, boolean rel_approx, boolean isVirtual, 
+	    public Tuple<?> build_features(Integer doc_id, String[] keys, boolean rel, boolean rel_approx, boolean isVirtual, 
 	    		String[] features, boolean[] _stopword) {// def build_features(self, doc_id=None, keys=None, rel=True, rel_approx=True, isVirtual=False, features=['WFreq', 'WRel', 'tf', 'WCase', 'WPos', 'WSpread'], _stopword=[True, False]):
 	        List<String> columns = new ArrayList<>();
 	        Set<String> seen = new HashSet<>();
@@ -348,7 +382,7 @@ public class DataRepresentation {
 	                        max_gold_ = Tuple.from( gold_key, dist );
 	                    }
 	                }
-	                features_cand.add(max_gold_.value(1));
+	                features_cand.add((double)max_gold_.value(1));
 	            }
 	        }
 
@@ -366,7 +400,7 @@ public class DataRepresentation {
 	        for(String feature_name : features) {
 
 	            for (boolean discart_stopword : _stopword) {
-	                Tuple<Double> composed_feature = this.get_composed_feature(feature_name, discart_stopword);//=discart_stopword);
+	                Tuple<Double> composed_feature = this.get_composed_feature(feature_name, discart_stopword);
 	                double f_sum = composed_feature.value(0);
 	                double f_prod = composed_feature.value(1);
 	                double f_sum_prod = composed_feature.value(2);
@@ -385,10 +419,12 @@ public class DataRepresentation {
 	    
 	    public void updateH(String[] features, boolean isVirtual) {//(self, features=None, isVirtual=False):
 	    	boolean isKPF = false;
-	    	boolean isNone = true;
-	    	for (String feature : features) {
-	    		if ("KPF".contentEquals(feature)) {
-	    			isKPF = true;
+	    	boolean isNone = features == null || features.length == 0 ? true : false;
+	    	if (features != null) {
+	    		for (String feature : features) {
+	    			if ("KPF".contentEquals(feature)) {
+	    				isKPF = true;
+	    			}
 	    		}
 	    	}
 	    	double sum_H  = 0.0;
@@ -401,7 +437,7 @@ public class DataRepresentation {
 	            } else {
 	                if("bi".contentEquals(STOPWORD_WEIGHT)) {
 	                    double prob_t1 = 0.0;
-	                    if(term_base.G.has_edge(this.terms.get(t-1).id, this.terms.get(t).id)) {
+	                    if((t - 1) >= 0 && term_base.G.has_edge(this.terms.get(t-1).id, this.terms.get(t).id)) {
 	                        prob_t1 = term_base.G.prob(this.terms.get(t-1).id, this.terms.get(t).id, "TF") / this.terms.get(t-1).tf;
 	                    }
 	                    double prob_t2 = 0.0;
@@ -423,18 +459,27 @@ public class DataRepresentation {
 	            tf_used = this.tf;
 	        }
 	        if(isVirtual) {
-//	        	tf_used = np.mean( [term_obj.tf for term_obj in self.terms] )
-    			tf_used = np.mean(terms.stream().map(term_obj -> term_obj.tf).collect(Collectors.toList()));
+    			tf_used = np.mean(terms.stream().map(term_obj -> term_obj.tf).collect(Collectors.toList()));//np.mean( [term_obj.tf for term_obj in self.terms] )
 	        }
 	        this.H = prod_H / ( ( sum_H + 1 ) * tf_used );
 		}
 	    
+	    public void updateH(String[] features) {
+	    	this.updateH(features, false);
+	    }
+	    
+	    public void updateH() {
+	    	this.updateH(null);
+	    }
+	    
 	    public void updateH_old(String[] features, boolean isVirtual) {//def updateH_old(self, features=None, isVirtual=False):
 	    	boolean isKPF = false;
-	    	boolean isNone = true;
-	    	for (String feature : features) {
-	    		if ("KPF".contentEquals(feature)) {
-	    			isKPF = true;
+	    	boolean isNone = features == null || features.length == 0 ? true : false;
+	    	if (features != null) {
+	    		for (String feature : features) {
+	    			if ("KPF".contentEquals(feature)) {
+	    				isKPF = true;
+	    			}
 	    		}
 	    	}
 	        double sum_H  = 0.0;
@@ -447,7 +492,7 @@ public class DataRepresentation {
 	            }
 	            if(term_base.stopword) {
 	                double prob_t1 = 0.0;
-	                if(term_base.G.has_edge(this.terms.get(t-1).id, this.terms.get(t).id)) {
+	                if((t - 1) >= 0 && term_base.G.has_edge(this.terms.get(t-1).id, this.terms.get(t).id)) {
 	                    prob_t1 = term_base.G.prob(this.terms.get(t-1).id, this.terms.get(t).id, "TF") / this.terms.get(t-1).tf;
 	                }
 	                double prob_t2 = 0.0;
@@ -466,21 +511,33 @@ public class DataRepresentation {
 	            tf_used = this.tf;
 	        }
 	        if(isVirtual) {
-//	        	tf_used = np.mean( [term_obj.tf for term_obj in self.terms] );
-	        	tf_used = np.mean(terms.stream().map(term_obj -> term_obj.tf).collect(Collectors.toList()));
+	        	tf_used = np.mean(terms.stream().map(term_obj -> term_obj.tf).collect(Collectors.toList()));//tf_used = np.mean( [term_obj.tf for term_obj in self.terms] );
 	        }
 	        this.H = prod_H / ( ( sum_H + 1 ) * tf_used);
 	        }
 	    }
 	    
 	    protected boolean start_or_end_stopwords;
-		protected Set<Tag> tags;
+		protected Set<String> tags;
 		protected String unique_kw;
-		protected int size;
 		protected List<Term> terms;
-		protected double tf;
+		protected int size;
 		protected double integrity;
-		protected double H;
+		
+		@Override
+		protected Double getattr(String feature_name) {
+			Double value = super.getattr(feature_name);
+			if (value != null) {
+				return value;
+			}
+			if ("integrity".contentEquals(feature_name)) {
+				return this.integrity;
+			}
+			if ("size".contentEquals(feature_name)) { 
+				return (double)this.size;
+			}
+			return null;
+		}
 	}
 	
 	public static class DataCore {
@@ -502,7 +559,7 @@ public class DataRepresentation {
 	        this._build(text, windowsSize, n);
 		}
 		
-		public ComposedWord build_candidate(String candidate_string) {//def build_candidate(self, candidate_string):
+		public ComposedWord build_candidate(String candidate_string) {
 //	        sentences_str = [w for w in split_contractions(web_tokenizer(candidate_string.toLowerCase())) if not (w.startswith("'") and len(w) > 1) and len(w) > 0]
 	        List<String> sentences_str = split_contractions(web_tokenizer(candidate_string.toLowerCase())).stream()
 	        		.filter(w -> w.length() > 0)
@@ -752,7 +809,7 @@ public class DataRepresentation {
 	    protected Map<String, ComposedWord> candidates;//???
 	    protected List<Object> sentences_obj;
         protected List<String> sentences_str;
-        protected nx<Object> G;
+        protected nx G;
         protected char[] exclude;
         protected String[] tagsToDiscard;
         protected Map<Integer, Double> freq_ns;
