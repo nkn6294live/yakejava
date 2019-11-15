@@ -2,7 +2,6 @@ package home.tut.yake;
 
 import java.util.List;
 
-import home.tut.yake.Yake.DedupAlg;
 import home.tut.yake.Yake.KeywordExtractorOutput;
 
 public class Program {
@@ -35,23 +34,23 @@ public class Program {
 				"since its   launch in 2010. Investors in Kaggle include Index Ventures, SV Angel, Max Levchin, Naval Ravikant, " +
 				"Google chief economist Hal Varian, Khosla Ventures and Yuri Milner ";
 		
-		// Example 1
+		// ------ Simple Run --------
 		Yake.KeywordExtractor kw_extractor1 = new Yake.KeywordExtractor();
 		List<KeywordExtractorOutput>keywords1 = kw_extractor1.extract_keywords(text);
 		for (KeywordExtractorOutput kw : keywords1) {			
 			System.out.println(kw);
 		}
-		// Example 2
-		String language = "en";
-		int max_ngram_size = 3;
-		double deduplication_thresold = 0.9;
-		DedupAlg deduplication_algo = DedupAlg.jaro;
-		int windowSize = 1;
-		int numOfKeywords = 20;
-		Yake.KeywordExtractor kw_extractor2 = new Yake.KeywordExtractor(language, max_ngram_size, deduplication_thresold, deduplication_algo, windowSize, numOfKeywords, null);
-		List<KeywordExtractorOutput>keywords2 = kw_extractor2.extract_keywords(text);
-		for (KeywordExtractorOutput kw : keywords2) {			
-			System.out.println(kw);
-		}
+		// ------ Run with config --------
+//		String language = "en";
+//		int max_ngram_size = 3;
+//		double deduplication_thresold = 0.9;
+//		DedupAlg deduplication_algo = DedupAlg.jaro;
+//		int windowSize = 1;
+//		int numOfKeywords = 20;
+//		Yake.KeywordExtractor kw_extractor2 = new Yake.KeywordExtractor(language, max_ngram_size, deduplication_thresold, deduplication_algo, windowSize, numOfKeywords, null);
+//		List<KeywordExtractorOutput>keywords2 = kw_extractor2.extract_keywords(text);
+//		for (KeywordExtractorOutput kw : keywords2) {			
+//			System.out.println(kw);
+//		}
 	}
 }

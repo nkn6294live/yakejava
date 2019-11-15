@@ -417,6 +417,27 @@ public class DataRepresentation {
 	        }
 	        return Tuple.from(features_cand, columns, seen);
 	    }
+	    public Tuple<?> build_features() {
+	    	return this.build_features(null, new String[] {}, true, true, false, new String[] {"WFreq", "WRel", "tf", "WCase", "WPos", "WSpread"}, new boolean[] {true, false});
+	    }
+	    public Tuple<?> build_features(Integer doc_id) {
+	    	return this.build_features(doc_id, new String[] {}, true, true, false, new String[] {"WFreq", "WRel", "tf", "WCase", "WPos", "WSpread"}, new boolean[] {true, false});
+	    }
+	    public Tuple<?> build_features(Integer doc_id, String[] keys) {
+	    	return this.build_features(doc_id, keys, true, true, false, new String[] {"WFreq", "WRel", "tf", "WCase", "WPos", "WSpread"}, new boolean[] {true, false});
+	    }
+	    public Tuple<?> build_features(Integer doc_id, String[] keys, boolean rel) {
+	    	return this.build_features(doc_id, keys, rel, true, false, new String[] {"WFreq", "WRel", "tf", "WCase", "WPos", "WSpread"}, new boolean[] {true, false});
+	    }
+	    public Tuple<?> build_features(Integer doc_id, String[] keys, boolean rel, boolean rel_approx) {
+	    	return this.build_features(doc_id, keys, rel, rel_approx, false, new String[] {"WFreq", "WRel", "tf", "WCase", "WPos", "WSpread"}, new boolean[] {true, false});
+	    }
+	    public Tuple<?> build_features(Integer doc_id, String[] keys, boolean rel, boolean rel_approx, boolean isVirtual) {
+	    	return this.build_features(doc_id, keys, rel, rel_approx, isVirtual, new String[] {"WFreq", "WRel", "tf", "WCase", "WPos", "WSpread"}, new boolean[] {true, false});
+	    }
+	    public Tuple<?> build_features(Integer doc_id, String[] keys, boolean rel, boolean rel_approx, boolean isVirtual, String[] features) {
+	    	return this.build_features(doc_id, keys, rel, rel_approx, isVirtual, features, new boolean[] {true, false});
+	    }
 	    
 	    public void updateH(String[] features, boolean isVirtual) {//(self, features=None, isVirtual=False):
 	    	boolean isKPF = false;
