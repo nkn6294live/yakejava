@@ -563,7 +563,7 @@ public class DataRepresentation {
 	}
 	
 	public static class DataCore {
-		public DataCore(String text, Set<String> stopword_set, int windowsSize, int n, String[] tagsToDiscard, char[] exclude) {//def __init__(self, text, stopword_set, windowsSize, n, tagsToDiscard = set(['u', 'd']), exclude = set(string.punctuation)):
+		public DataCore(String text, Set<String> stopword_set, int windowsSize, int n, String[] tagsToDiscard, char[] exclude, String language) {//def __init__(self, text, stopword_set, windowsSize, n, tagsToDiscard = set(['u', 'd']), exclude = set(string.punctuation)):
 	        this.number_of_sentences = 0;
 	        this.number_of_words = 0;
 	        this.terms = new HashMap<>();//{}
@@ -578,12 +578,13 @@ public class DataRepresentation {
 	            this.freq_ns.put(i+1, 0.0);
 	        }
 	        this.stopword_set = stopword_set;
+	        this.language = language;
 	        this._build(text, windowsSize, n);
 		}
 		
 		public ComposedWord build_candidate(String candidate_string) {
 //	        sentences_str = [w for w in split_contractions(web_tokenizer(candidate_string.toLowerCase())) if not (w.startswith("'") and len(w) > 1) and len(w) > 0]
-	        List<String> sentences_str = split_contractions(web_tokenizer(candidate_string.toLowerCase())).stream()
+	        List<String> sentences_str = split_contractions(web_tokenizer(candidate_string.toLowerCase(), this.language), this.language).stream()
 	        		.filter(w -> w.length() > 0)
 	        		.filter(w -> !(w.startsWith("'") && w.length() > 1))
 	        		.collect(Collectors.toList());	        		;
@@ -610,9 +611,9 @@ public class DataRepresentation {
 		public void _build(String text, int windowsSize, int n) {//def _build(self, text, windowsSize, n):
 			text = this.pre_filter(text).toString();
 //	        this.sentences_str = [ [w for w in split_contractions(web_tokenizer(s)) if not (w.startswith("'") and len(w) > 1) and len(w) > 0] for s in list(split_multi(text)) if len(s.strip()) > 0]
-			this.sentences_str = split_multi(text).stream()
+			this.sentences_str = split_multi(text, this.language).stream()
 				.filter(s -> s.trim().length() > 0)//strip
-				.map(s -> split_contractions(web_tokenizer(s)).stream()
+				.map(s -> split_contractions(web_tokenizer(s, this.language), this.language).stream()
 						.filter(w -> w.length() > 0)
 						.filter(w -> !(w.length() > 1 && w.startsWith("'")))
 						.collect(Collectors.toList())
@@ -847,5 +848,6 @@ public class DataRepresentation {
         protected String[] tagsToDiscard;
         protected Map<Integer, Double> freq_ns;
         protected Set<String> stopword_set;
+        protected String language;
 	}
 }

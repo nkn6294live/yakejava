@@ -82,6 +82,24 @@ public class Yake {
 		public KeywordExtractor() {
 			this("en", 3, 0.9, DedupAlg.seqm, 1, 20, null);
 		}
+		public KeywordExtractor(String lan) {
+			this(lan, 3, 0.9, DedupAlg.seqm, 1, 20, null);
+		}
+		public KeywordExtractor(String lan, int n) {
+			this(lan, n, 0.9, DedupAlg.seqm, 1, 20, null);
+		}
+		public KeywordExtractor(String lan, int n, double dedupLim) {
+			this(lan, n, dedupLim, DedupAlg.seqm, 1, 20, null);
+		}
+		public KeywordExtractor(String lan, int n, double dedupLim, DedupAlg dedupFunc) {
+			this(lan, n, dedupLim, dedupFunc, 1, 20, null);
+		}
+		public KeywordExtractor(String lan, int n, double dedupLim, DedupAlg dedupFunc, int windowsSize) {
+			this(lan, n, dedupLim, dedupFunc, windowsSize, 20, null);
+		}
+		public KeywordExtractor(String lan, int n, double dedupLim, DedupAlg dedupFunc, int windowsSize, int top) {
+			this(lan, n, dedupLim, dedupFunc, windowsSize, top, null);
+		}
 
 		public double jaro(CharSequence cand1, CharSequence cand2) {
 			return jellyfish.jaro_winkler(cand1, cand2);
@@ -97,7 +115,7 @@ public class Yake {
 
 		public List<KeywordExtractorOutput> extract_keywords(String text) {
 			text = text.replace("\n\t", " ");
-			DataCore dc = new DataCore(text, this.stopword_set, this.windowsSize, this.n, null, null);
+			DataCore dc = new DataCore(text, this.stopword_set, this.windowsSize, this.n, null, null, this.lan);
 			dc.build_single_terms_features(this.features);
 			dc.build_mult_terms_features(this.features);
 			List<Tuple<Object>> resultSet = new ArrayList<>();// []

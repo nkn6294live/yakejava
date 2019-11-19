@@ -1,5 +1,6 @@
 package home.tut.yake;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -13,6 +14,10 @@ import java.util.stream.Collectors;
 
 import cue.lang.SentenceIterator;
 import cue.lang.WordIterator;
+import vn.pipeline.Annotation;
+import vn.pipeline.Sentence;
+import vn.pipeline.VnCoreNLP;
+import vn.pipeline.Word;
 
 public class Wrapper {
 
@@ -679,29 +684,83 @@ public class Wrapper {
 	}
 	
 	public static class segtok {
+		public static List<String> split_multi(String text, String language) {
+			List<String> results = new ArrayList<>();
+			if ("vi".contentEquals(language)) {
+				VnCoreNLP pipeline = getVNCoreNLP();
+				if (pipeline != null) {
+					Annotation annotation = new Annotation(text); 
+			        try {
+						pipeline.annotate(annotation);
+						for (Sentence sentence : annotation.getSentences()) {
+				        	results.add(sentence.getRawSentence());
+				        }
+					} catch (IOException e) {
+					}
+				}
+			} else {				
+				SentenceIterator sentenceIterator = new SentenceIterator(text, Locale.ENGLISH);
+				for (final String word : sentenceIterator) {
+					results.add(word);
+				}
+			}
+			return results;
+		}
+		
 //		from segtok.segmenter import split_multi
 		public static List<String> split_multi(String text) {
-			List<String> results = new ArrayList<>();
-			SentenceIterator sentenceIterator = new SentenceIterator(text, Locale.ENGLISH);
-			for (final String word : sentenceIterator) {
-				results.add(word);
-			}
-			return results;
+			return split_multi(text, "en");
 		}
 //		from segtok.tokenizer import web_tokenizer
-		public static List<String> web_tokenizer(String sentence) {
+		public static List<String> web_tokenizer(String sentence, String language) {
 			List<String> results = new ArrayList<>();
-			WordIterator wordIterator = new WordIterator(sentence);
-			for (final String word : wordIterator) {
-			    results.add(word);
+			if ("vi".contentEquals(language)) {
+				VnCoreNLP pipeline = getVNCoreNLP();
+				if (pipeline != null) {
+					Annotation annotation = new Annotation(sentence); 
+			        try {
+						pipeline.annotate(annotation);
+						for (Word word : annotation.getWords()) {
+				        	results.add(word.getForm());
+				        }
+					} catch (IOException e) {
+					}
+				}
+			} else {
+				WordIterator wordIterator = new WordIterator(sentence);
+				for (final String word : wordIterator) {
+				    results.add(word);
+				}
 			}
 			return results;
 		}
+		public static List<String> web_tokenizer(String sentence) {
+			return web_tokenizer(sentence, "en");
+		}
 //		from segtok.tokenizer import split_contractions
-		public static List<String> split_contractions(List<String> tokens) {
+		public static List<String> split_contractions(List<String> tokens, String language) {
 			// TODO update split_contractions
+			if ("vi".contentEquals(language)) {
+				
+			}
 			return tokens;
 		}
+		public static List<String> split_contractions(List<String> tokens) {
+			return split_contractions(tokens, "en");
+		}
+		protected static VnCoreNLP getVNCoreNLP() {
+			if (pipeline == null) {
+				try {
+					pipeline = new VnCoreNLP(annotators);
+				} catch (IOException e) {
+					pipeline = null;
+				}
+			}
+			return pipeline;
+		}
+		
+		private static String[] annotators = {"wseg"};//, "pos", "ner", "parse"}; 
+        private static VnCoreNLP pipeline = null; 
 	}
 	
 	}
